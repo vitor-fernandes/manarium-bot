@@ -47,4 +47,10 @@ Changelog:
                 * 3 - 12 to be a more "human" score
             * If the user is the tournament leader, the script will sleep for 1 hour + some random minutes
                 * This simulates that the player after being the leader, stopped to play for this time.
+    * v3:
+        - Uses the same approach above, but some resources was been added:
+            * Support for Multithread and all the Manarium' games
+                - One thread per game
+                - Addapt some functions to execute in threads
+                - Clean the Code ( I think that I've mess that :P )
                 

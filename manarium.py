@@ -8,11 +8,78 @@ import time
 import re
 from urllib import parse
 import operator
+import threading
 
 urllib3.disable_warnings()
 
-wallet = ['0x2b17a68573381f12e768e9507f1d6F5361CCA1DF']
-game_name = 'To The Moon'
+# ========== Wallets ==========
+wallet_spicy_walls = '0x2b17a68573381f12e768e9507f1d6F5361CCA1DF'
+wallet_to_the_moon = '0xa94B40e1EB8b87a79510fD15f98c0fb986dcD4f1'
+wallet_in_the_woods = '0x5ccd2F57fD869A95AE12e8aE964943e042F1e1EB'
+# =============================
+
+# =============== General Functions =================
+def play_to_the_moon(wallet):
+    game_name = 'To The Moon'
+    player = wallet
+    play(game_name, player, 3, 12)
+
+def play_spiky_walls(wallet):
+    game_name = 'Spiky Walls'
+    player = wallet
+    play(game_name, player, 3, 10)
+
+def play_in_the_woods(wallet):
+    game_name = 'In The Woods'
+    player = wallet
+    play(game_name, player, 8, 30)
+
+def play(game_name, wallet, start_number, finish_number):
+    print('[!] Starting the Game: {} [!]'.format(game_name))
+    last_score = 1
+
+    scoreboard = manage_scoreboard(wallet, game_name)
+
+    while(True):
+        print('[-] Not Leader [-]')
+            
+        print('Last Score: ' + str(last_score))
+
+        # Generate a new session time based on the last score number
+        session_time = generate_session_time(last_score)
+        print('Session Time: ' + str(session_time))
+            
+        # Get the auth token and send the data
+        auth_token = get_auth_token()
+        send_data(auth_token, wallet, game_name, last_score, session_time)
+            
+        # Simulate Back to Menu
+        sleep_back_menu = session_time + 7.34
+        print('Sleep Menu: {}'.format(sleep_back_menu))
+        time.sleep(sleep_back_menu)
+
+        print('\n================================\n')
+
+        # Check if I'm leader
+        if(last_score >= scoreboard[0][1]): 
+            print("==> You're the Tournament Leader !!!\n")
+            print('Last Score: ' + str(last_score))
+
+            # Print the current Scoreboard after being the Leader
+            manage_scoreboard(wallet, game_name)
+
+            # Simulate a Break of 1 hour + random minutes
+            sleep_stop_playing = 3600 + random.randint(0, 360)
+            print('Sleep Stop Playing: {}'.format(sleep_stop_playing))
+            time.sleep(sleep_stop_playing)
+            
+            # Refresh the Score
+            scoreboard = manage_scoreboard(wallet, game_name)
+        
+        else: 
+            # Increment the new score in number between start_number-finish_number
+            last_score += random.randint(start_number,finish_number)
+            continue
 
 def get_auth_token():
     headers = {
@@ -39,9 +106,8 @@ def get_auth_token():
 
     return json.loads(response.text)['accessToken']
 
-
 def send_data(auth_token, wallet, game_name, score, session_time):
-    data_dict = '{"gameTitle":"' + "{}".format(game_name) + '","wallet":"' + "{}".format(wallet) + '","sessionTime":"' + "{}".format(session_time) + '","timeUTC":"' + "{}".format(str(datetime.utcnow()).split('.')[0]) + '","ip":"195.158.248.227","gameVersion":2,"score":' + str(score) + '}'
+    data_dict = '{"gameTitle":"' + "{}".format(game_name) + '","wallet":"' + "{}".format(wallet) + '","sessionTime":"' + "{}".format(session_time) + '","timeUTC":"' + "{}".format(str(datetime.utcnow()).split('.')[0]) + '","ip":"177.58.159.123","gameVersion":2,"score":' + str(score) + '}'
 
     payload = json.dumps({"data": "{}".format(base64.b64encode(data_dict.encode('ascii')).decode('ascii'))})
 
@@ -68,12 +134,13 @@ def send_data(auth_token, wallet, game_name, score, session_time):
     
     print(response.text)
 
-
 def generate_session_time(score):
     return (score * 2.03) + random.randint(0,9) + random.random()
 
+# ============== End General Functions =================
 
-# Generate GSessionID & SID
+# ========== Scoreboard Functions =============
+### Generate GSessionID & SID
 def one(wallet):
     headers = {
         'Host': 'firestore.googleapis.com',
@@ -110,7 +177,6 @@ def one(wallet):
 
     return [response.headers['X-HTTP-Session-Id'], response.text.split(',')[2].replace('"','')]
 
-
 # 2º Request after GSessionID SID
 def two(gsessionid, sid):
     headers = {
@@ -146,9 +212,8 @@ def two(gsessionid, sid):
 
     response = requests.post('https://firestore.googleapis.com/google.firestore.v1.Firestore/Listen/channel', headers=headers, params=params, data=data, verify=False)
 
-
-# 3º Request after GSessionID SID
-def three(gsessionid, sid, project_name):
+## 3º Request after GSessionID SID
+def three(gsessionid, sid, game_name):
     headers = {
         'Host': 'firestore.googleapis.com',
         'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:95.0) Gecko/20100101 Firefox/95.0',
@@ -178,13 +243,11 @@ def three(gsessionid, sid, project_name):
         ('t', '1'),
     )
 
-    data = 'count=1&ofs=2&req0___data__=%7B%22database%22%3A%22projects%2Fplayground-bsc%2Fdatabases%2F(default)%22%2C%22addTarget%22%3A%7B%22query%22%3A%7B%22structuredQuery%22%3A%7B%22from%22%3A%5B%7B%22collectionId%22%3A%22{}%22%7D%5D%2C%22orderBy%22%3A%5B%7B%22field%22%3A%7B%22fieldPath%22%3A%22__name__%22%7D%2C%22direction%22%3A%22ASCENDING%22%7D%5D%7D%2C%22parent%22%3A%22projects%2Fplayground-bsc%2Fdatabases%2F(default)%2Fdocuments%22%7D%2C%22targetId%22%3A6%7D%7D'.format(project_name.replace(' ', '%20'))
+    data = 'count=1&ofs=2&req0___data__=%7B%22database%22%3A%22projects%2Fplayground-bsc%2Fdatabases%2F(default)%22%2C%22addTarget%22%3A%7B%22query%22%3A%7B%22structuredQuery%22%3A%7B%22from%22%3A%5B%7B%22collectionId%22%3A%22{}%22%7D%5D%2C%22orderBy%22%3A%5B%7B%22field%22%3A%7B%22fieldPath%22%3A%22__name__%22%7D%2C%22direction%22%3A%22ASCENDING%22%7D%5D%7D%2C%22parent%22%3A%22projects%2Fplayground-bsc%2Fdatabases%2F(default)%2Fdocuments%22%7D%2C%22targetId%22%3A6%7D%7D'.format(game_name.replace(' ', '%20'))
 
     response = requests.post('https://firestore.googleapis.com/google.firestore.v1.Firestore/Listen/channel', headers=headers, params=params, data=data, verify=False)
 
-
-
-# 4º Request after GSessionID SID
+## 4º Request after GSessionID SID
 def four(gsessionid, sid):
     headers = {
         'Host': 'firestore.googleapis.com',
@@ -219,8 +282,7 @@ def four(gsessionid, sid):
 
     response = requests.post('https://firestore.googleapis.com/google.firestore.v1.Firestore/Listen/channel', headers=headers, params=params, data=data, verify=False)
 
-
-# 5º Request after GSessionID SID (Get Score)
+## 5º Request after GSessionID SID (Get Score)
 def five(gsessionid, sid):
     headers = {
         'Host': 'firestore.googleapis.com',
@@ -255,11 +317,11 @@ def five(gsessionid, sid):
 
     return response.text
 
-
-def get_score(wallet, project_name):
+## get the scoreboard and format
+def get_score(wallet, game_name):
     gsessionid, sid = one(wallet)
     two(gsessionid, sid)
-    three(gsessionid, sid, project_name)
+    three(gsessionid, sid, game_name)
     four(gsessionid, sid)
     raw_score = five(gsessionid, sid)
 
@@ -267,15 +329,8 @@ def get_score(wallet, project_name):
 
     return formated_score
 
+## format the score in format [wallet, score]
 def format_score(scoreboard):
-    '''
-    scores = re.findall('\{\"integerValue\":\"([0-9]{0,})\"}', scoreboard.replace(' ','').replace('\n',''))
-    scores_int = list(filter((2).__ne__, [int(num) for num in scores]))
-
-    scores_int.sort(reverse=True)
-    return scores_int[0:5]
-    '''
-
     scores = re.findall('\"score\":\{\"integerValue\":\"([0-9]{0,})\"}', scoreboard.replace(' ','').replace('\n',''))
     wallets = re.findall('\{\"stringValue\":\"(0x+[0-9a-zA-Z]{0,})\"\}', scoreboard.replace(' ','').replace('\n',''))
 
@@ -288,55 +343,24 @@ def format_score(scoreboard):
 
     return scoreboard
 
+## Get the formated scoreboard and print it
+def manage_scoreboard(wallet, game_name):
+    print("[-] Getting the {}' Scoreboard, please wait [-]".format(game_name))
+    scoreboard = get_score(wallet, game_name)
+    print('[+] {}\' Scoreboard [+]\n - {}\n================================================\n'.format(game_name, "\n - ".join(player[0] + ":" + str(player[1]) for player in scoreboard)))
+    
+    return scoreboard
 
-def main():
-    scoreboard = get_score(wallet[0], game_name)
+# ============= End ScoreBoard Functions ============
 
-    last_score = 1
+def exploit():
+    thread_spiky_walls = threading.Thread(target=play_spiky_walls, args=(wallet_spicy_walls,))
+    thread_to_the_moon = threading.Thread(target=play_to_the_moon, args=(wallet_to_the_moon,))
+    thread_in_the_woods = threading.Thread(target=play_in_the_woods, args=(wallet_in_the_woods,))
 
-    print('[+] Scoreboard [+]\n - {}\n================================================\n'.format("\n - ".join(player[0] + ":" + str(player[1]) for player in scoreboard)))
-
-    while(True):
-        print('[-] Not Leader [-]')
-            
-        print('Last Score: ' + str(last_score))
-
-        session_time = generate_session_time(last_score)
-        print('Session Time: ' + str(session_time))
-            
-        auth_token = get_auth_token()
-        send_data(auth_token, wallet[0], game_name, last_score, session_time)
-            
-        # Simulate Back to Menu
-        sleep_back_menu = session_time + 7.34
-        print('Sleep Menu: {}'.format(sleep_back_menu))
-        time.sleep(sleep_back_menu)
-
-        print('\n================================\n')
-
-        if(last_score >= scoreboard[0][1]): 
-            print("==> You're the Tournament Leader !!!\n")
-            
-            print('Last Score: ' + str(last_score))
-
-            scoreboard = get_score(wallet[0], game_name)
-
-            print('[+] Scoreboard [+]\n - {}\n================================================\n'.format("\n - ".join(player[0] + ":" + str(player[1]) for player in scoreboard)))
-
-            # Simulate a Break of 1 hour + random minutes
-            sleep_stop_playing = 3600 + random.randint(0, 360)
-            print('Sleep Stop Playing: {}'.format(sleep_stop_playing))
-            time.sleep(sleep_stop_playing)
-            
-            # Refresh the Score
-            scoreboard = get_score(wallet[0], game_name)
-
-            print('[+] Scoreboard [+]\n - {}\n================================================\n'.format("\n - ".join(player[0] + ":" + str(player[1]) for player in scoreboard)))
-        
-        else: 
-            last_score += random.randint(3,12)
-            continue
-        
+    thread_spiky_walls.start()
+    thread_to_the_moon.start()
+    thread_in_the_woods.start()        
 
 if __name__ == '__main__':
-    main()
+    exploit()
