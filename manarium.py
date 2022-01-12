@@ -42,8 +42,9 @@ def play(game_name, wallet, start_number, finish_number):
 
     while(True):
         if(time.asctime().split(' ')[3].split(':')[0] >= '18'):
+            print('[!] Tournament for the Game {} ended [!]'.format(game_name))
             break
-            
+
         print('[-] Not Leader [-]')
             
         print('Last Score: ' + str(last_score))
