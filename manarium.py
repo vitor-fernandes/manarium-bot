@@ -13,9 +13,9 @@ import threading
 urllib3.disable_warnings()
 
 # ========== Wallets ==========
-wallet_spicy_walls = '0x2b17a68573381f12e768e9507f1d6F5361CCA1DF'
-wallet_to_the_moon = '0xa94B40e1EB8b87a79510fD15f98c0fb986dcD4f1'
-wallet_in_the_woods = '0x5ccd2F57fD869A95AE12e8aE964943e042F1e1EB'
+wallet_spicy_walls = '0x0'
+wallet_to_the_moon = '0x0'
+wallet_in_the_woods = '0x0'
 # =============================
 
 # =============== General Functions =================
@@ -41,6 +41,9 @@ def play(game_name, wallet, start_number, finish_number):
     scoreboard = manage_scoreboard(wallet, game_name)
 
     while(True):
+        if(time.asctime().split(' ')[3].split(':')[0] >= '18'):
+            break
+            
         print('[-] Not Leader [-]')
             
         print('Last Score: ' + str(last_score))
