@@ -3,6 +3,12 @@ This is a Bot to Hack the Games of Manarium (manarium.com/games)...
 
 Was developed to proof the existence of a vulnerability in their system that allows an user to manipulate the scores and ever win the daily tournament, with a profit of 30x in a day, and works in all the 3 games in the platform.
 
+
+##### 01/21/2021 -> This not works Anymore :(
+    - At this point, Manarium implemented a mechanism that sign the score in a JWT and send to the server
+    - Further analysis will be made in the future to try the bypass of this mechanism
+
+
 Changelog:
     
     * v0:
@@ -53,4 +59,3 @@ Changelog:
                 - One thread per game
                 - Addapt some functions to execute in threads
                 - Clean the Code ( I think that I've mess that :P )
-                
